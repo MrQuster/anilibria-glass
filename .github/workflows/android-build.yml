@@ -42,6 +42,9 @@ jobs:
       # Проверка gradle-wrapper + кеш Gradle (заменяет cache: gradle)
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          # Нужен как запасной вариант, если gradlew нет в репозитории
+          gradle-version: "8.13"
 
       # Лицензии принимаются автоматически, ANDROID_HOME выставляется сам
       - name: Set up Android SDK
@@ -52,8 +55,15 @@ jobs:
             platforms;android-${{ env.ANDROID_COMPILE_SDK }}
             build-tools;${{ env.ANDROID_BUILD_TOOLS }}
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Prepare Gradle wrapper
+        shell: bash
+        run: |
+          if [ ! -f ./gradlew ]; then
+            echo "::warning::gradlew не найден в репозитории — генерирую wrapper. Закоммить gradlew и gradle/wrapper/*"
+            ls -la
+            gradle wrapper --gradle-version 8.13
+          fi
+          chmod +x ./gradlew
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
